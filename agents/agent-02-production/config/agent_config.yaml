@@ -1,0 +1,132 @@
+# Agent-02: Production & MES Agent Configuration
+# Overrides for environment-specific settings
+
+agent:
+  id: "agent-02"
+  name: "Production & MES Agent"
+  autonomy_level: "L2"  # Semi-Autonomous
+  kpi_owner: "COO"
+  description: >
+    Optimizes production scheduling, monitors OEE in real-time,
+    detects quality defects, triggers predictive maintenance,
+    and identifies bottlenecks.
+
+oee:
+  # OEE calculation components
+  components:
+    availability:
+      weight: 1.0
+      sub_metrics:
+        - name: "Planned Downtime"
+          description: "Scheduled maintenance, breaks, changeovers"
+        - name: "Unplanned Downtime"
+          description: "Breakdowns, setup delays, material shortages"
+    performance:
+      weight: 1.0
+      sub_metrics:
+        - name: "Cycle Time"
+          description: "Actual vs. ideal cycle time ratio"
+        - name: "Speed Loss"
+          description: "Running at reduced speed"
+    quality:
+      weight: 1.0
+      sub_metrics:
+        - name: "First Pass Yield"
+          description: "Good units on first attempt"
+        - name: "Rework Rate"
+          description: "Units requiring rework"
+        - name: "Scrap Rate"
+          description: "Defective units scrapped"
+
+  # Production line specific targets
+  production_lines:
+    line-a:
+      availability_target: 92.0
+      performance_target: 95.0
+      quality_target: 98.0
+    line-b:
+      availability_target: 90.0
+      performance_target: 93.0
+      quality_target: 97.0
+    line-c:
+      availability_target: 85.0
+      performance_target: 90.0
+      quality_target: 95.0
+
+quality:
+  spc_rules:
+    - name: "Rule 1 — 1 point beyond ±3σ"
+      description: "Any single data point outside control limits"
+      severity: "warning"
+    - name: "Rule 2 — 9 points on same side of center"
+      description: "Run of 9 consecutive points above or below center"
+      severity: "warning"
+    - name: "Rule 3 — 6 points trending"
+      description: "6 consecutive points consistently increasing or decreasing"
+      severity: "alert"
+    - name: "Rule 4 — 14 points alternating"
+      description: "14 consecutive points alternating up and down"
+      severity: "info"
+    - name: "Rule 5 — 2 of 3 points beyond ±2σ"
+      description: "2 out of 3 consecutive points in Zone A or beyond"
+      severity: "alert"
+    - name: "Rule 6 — 4 of 5 points beyond ±1σ"
+      description: "4 out of 5 consecutive points in Zone B or beyond"
+      severity: "alert"
+
+predictive_maintenance:
+  model_config:
+    algorithm: "xgboost"
+    binary_classifier: true
+    features:
+      - "vibration"
+      - "temperature"
+      - "current_draw"
+      - "run_hours"
+      - "cycle_count"
+    confidence_thresholds:
+      proactive: 0.85
+      immediate_halt: 0.95
+
+thresholds:
+  oee_critical_pct: 70.0
+  quality_defect_critical_pct: 5.0
+  schedule_variance_hours: 8.0
+  quality_defect_rate_hitl_pct: 5.0
+  max_retry_attempts: 3
+  fallback_mes_age_minutes: 30
+
+escalation:
+  paths:
+    - trigger: "oee < 70% for 2 consecutive shifts"
+      notify: ["operations_manager"]
+      sla_minutes: 60
+      priority: "P1-High"
+    - trigger: "quality_defect_rate > 5%"
+      notify: ["qa_director"]
+      sla_minutes: 60
+      priority: "P1-High"
+    - trigger: "schedule_variance > 8 hours"
+      notify: ["production_manager"]
+      sla_minutes: 120
+      priority: "P2-Medium"
+    - trigger: "pm_failure_confidence > 0.95"
+      notify: ["maintenance_manager"]
+      sla_minutes: 30
+      priority: "P1-High"
+    - trigger: "safety_interlock"
+      notify: ["safety_officer", "cto"]
+      sla_minutes: 5
+      priority: "P0-Critical"
+
+fallback:
+  mes_disconnected:
+    strategy: "last_known_state"
+    max_age_minutes: 30
+    extrapolate_cycle_times: true
+  quality_data_unavailable:
+    strategy: "assume_standard"
+    flag_manual_inspection: true
+  schedule_optimizer_unavailable:
+    strategy: "fifo_legacy"
+    description: "First-in-first-out based on order priority"

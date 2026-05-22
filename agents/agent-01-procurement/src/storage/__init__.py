@@ -1,0 +1,1 @@
+"""Persistence layer: PostgreSQL repository and Redis cache."""

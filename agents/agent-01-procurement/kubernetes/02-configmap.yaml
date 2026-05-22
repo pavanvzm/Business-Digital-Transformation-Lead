@@ -1,0 +1,38 @@
+# =============================================================================
+# Manufacturing MAS — Agent-01 ConfigMap
+# =============================================================================
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-01-config
+  namespace: manufacturing-mas
+  labels:
+    app.kubernetes.io/name: agent-01
+    app.kubernetes.io/component: procurement
+    app.kubernetes.io/part-of: manufacturing-mas
+data:
+  AGENT_ID: "agent-01"
+  AGENT_VERSION: "1.0.0"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+
+  # Scoring thresholds
+  SCORING_MIN_ACCEPTABLE_SCORE: "60.0"
+  SCORING_QUALITY_CRITICAL_THRESHOLD: "70.0"
+  SCORING_PRICE_SPIKE_WARNING_PCT: "5.0"
+  SCORING_PRICE_SPIKE_CRITICAL_PCT: "10.0"
+  SCORING_PO_VALUE_HITL_THRESHOLD_USD: "500000"
+
+  # HITL configuration
+  HITL_TIMEOUT_SECONDS: "3600"
+  HITL_POLL_INTERVAL_SECONDS: "10"
+
+  # Cache TTLs (seconds)
+  CACHE_TTL_MARKET_PRICES: "14400"
+  CACHE_TTL_VENDOR_MASTER: "86400"
+  CACHE_TTL_FORECAST: "3600"
+
+  # Fallback
+  FALLBACK_PRICE_BUFFER_PCT: "3.0"
+  FALLBACK_FORECAST_MONTHS: "3"

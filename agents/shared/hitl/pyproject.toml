@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "manufacturing-mas-hitl"
+version = "1.0.0"
+description = "Shared Human-in-the-Loop gate package for Manufacturing Multi-Agent System"
+requires-python = ">=3.11"
+license = {text = "Proprietary"}
+dependencies = []
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_unimported = false
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

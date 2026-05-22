@@ -1,0 +1,25 @@
+# =============================================================================
+# Manufacturing MAS — Namespace
+# =============================================================================
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: manufacturing-mas
+  labels:
+    name: manufacturing-mas
+    tier: production
+    managed-by: argocd
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: agent-01-quota
+  namespace: manufacturing-mas
+spec:
+  hard:
+    requests.cpu: "2"
+    requests.memory: "4Gi"
+    limits.cpu: "4"
+    limits.memory: "8Gi"
+    persistentvolumeclaims: "2"

@@ -1,0 +1,114 @@
+# =============================================================================
+# Manufacturing MAS — Agent-01 Procurement: Local Development Stack
+#
+# Starts dependent services (Kafka, PostgreSQL, Redis) for local development.
+# The agent connects to these services via environment variables.
+# =============================================================================
+
+version: "3.9"
+
+services:
+  # ── Agent (Procurement) ──────────────────────────────────────────────────
+  agent-01-procurement:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+      target: development
+    container_name: mas-agent-01-procurement
+    environment:
+      - AGENT_ID=agent-01
+      - AGENT_VERSION=1.0.0
+      - ENVIRONMENT=development
+      - LOG_LEVEL=DEBUG
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - DB_POSTGRES_DSN=postgresql+asyncpg://mas_user:mas_pass@postgres:5432/mas_procurement
+      - DB_REDIS_URL=redis://redis:6379/0
+      - SCORING_MIN_ACCEPTABLE_SCORE=60.0
+      - SCORING_QUALITY_CRITICAL_THRESHOLD=70.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    ports:
+      - "8001:8000"  # if HTTP health endpoint is added
+    volumes:
+      - ../:/app  # hot-reload for development
+      - agent-01-queue:/var/agent-01/queue
+
+  # ── Kafka ────────────────────────────────────────────────────────────────
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: mas-kafka
+    hostname: kafka
+    environment:
+      CLUSTER_ID: mas-cluster-01
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_CREATE_TOPICS: >-
+        events.market:3:1,
+        events.forecast:3:1,
+        events.inventory:3:1,
+        events.orchestrator:3:1,
+        events.procurement:3:1,
+        events.dead-letter:1:1
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: mas-postgres
+    environment:
+      POSTGRES_USER: mas_user
+      POSTGRES_PASSWORD: mas_pass
+      POSTGRES_DB: mas_procurement
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mas_user -d mas_procurement"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  # ── Redis ────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: mas-redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+
+volumes:
+  kafka-data:
+  postgres-data:
+  redis-data:
+  agent-01-queue:

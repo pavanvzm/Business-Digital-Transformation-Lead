@@ -1,0 +1,93 @@
+@startuml Manufacturing MAS Architecture
+!include <C4/C4_Container>
+!include <C4/C4_Context>
+
+LAYOUT_WITH_LEGEND()
+
+title Manufacturing Multi-Agent System — System Context (C4 Model)
+
+Person(cfo, "CFO", "Chief Financial Officer — margin, cash flow, cost")
+Person(coo, "COO", "Chief Operations Officer — OEE, throughput, quality")
+Person(cpo, "CPO", "Chief Procurement Officer — forecast, supplier, inventory")
+Person(cso, "CSO", "Chief Sales Officer — orders, fulfillment, revenue")
+Person(cro, "CRO", "Chief Risk Officer — compliance, risk, security")
+
+System_Boundary(mas, "Manufacturing MAS") {
+    System(orch, "Orchestrator Agent-09", "Governance, arbitration, HITL routing")
+    
+    System_Boundary(intelligence, "Intelligence Layer") {
+        System(market, "Market Intel Agent-05", "Competitor, sentiment, trends")
+        System(forecast, "Predictive Agent-06", "Forecasting, simulation, what-if")
+        System(finance, "Financial Agent-07", "BOM costing, P&L, cash flow")
+        System(compliance, "Compliance Agent-08", "Regulatory, risk, audit trails")
+    }
+    
+    System_Boundary(execution, "Execution Layer") {
+        System(procure, "Procurement Agent-01", "Vendor, contracts, pricing")
+        System(prod, "Production Agent-02", "Scheduling, OEE, maintenance")
+        System(inv, "Inventory Agent-03", "Reorder, FIFO/FEFO, cross-dock")
+        System(sales, "Sales Agent-04", "Orders, fulfillment, logistics")
+    }
+}
+
+System_Boundary(data, "Data & Integration Layer") {
+    SystemDb(kafka, "Kafka / Pulsar", "Event streaming bus")
+    SystemDb(delta, "Delta Lake / Iceberg", "Data lakehouse")
+    SystemDb(pg, "PostgreSQL", "Relational data store")
+    SystemDb(redis, "Redis", "Cache & feature store")
+    SystemDb(minio, "MinIO", "Object store & WORM audit")
+}
+
+System_Ext(erp, "ERP (SAP/Oracle)")
+System_Ext(mes_sys, "MES (Siemens/Rockwell)")
+System_Ext(crm, "CRM (Salesforce)")
+System_Ext(wms, "WMS (Manhattan)")
+System_Ext(iot, "IoT / Sensors")
+System_Ext(pos, "POS / Retailer EDI")
+System_Ext(banking, "Banking / Payment APIs")
+System_Ext(market_data, "Market Data (Bloomberg/LME)")
+
+' Relationships: Person to System
+cfo --> finance : "Reviews P&L, margin, cash flow"
+coo --> prod : "Monitors OEE, throughput"
+cpo --> forecast : "Reviews forecast accuracy"
+cpo --> procure : "Approves supplier decisions"
+cso --> sales : "Monitors fulfillment, pricing"
+cro --> compliance : "Reviews risk & compliance"
+
+' Relationships: System to System
+orch --> market : "Governs"
+orch --> forecast : "Governs"
+orch --> finance : "Governs"
+orch --> compliance : "Governs"
+orch --> procure : "Governs"
+orch --> prod : "Governs"
+orch --> inv : "Governs"
+orch --> sales : "Governs"
+
+procure --> kafka : "Publishes events.procurement"
+prod --> kafka : "Publishes events.production"
+inv --> kafka : "Publishes events.inventory"
+sales --> kafka : "Publishes events.sales"
+market --> kafka : "Publishes events.market"
+forecast --> kafka : "Publishes events.forecast"
+finance --> kafka : "Publishes events.finance"
+compliance --> kafka : "Publishes events.compliance"
+
+kafka --> delta : "Streams to lakehouse"
+delta --> pg : "Materialized aggregates"
+
+procure -[hidden]-> prod
+prod -[hidden]-> inv
+inv -[hidden]-> sales
+
+erp --> kafka : "PO, orders, financials"
+mes_sys --> kafka : "Telemetry, quality"
+crm --> kafka : "Orders, customers"
+wms --> kafka : "Inventory"
+iot --> kafka : "Sensor data"
+pos --> kafka : "Sales transactions"
+banking --> kafka : "Payments"
+market_data --> kafka : "Prices, news"
+
+@enduml

@@ -1,0 +1,14 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agent-02-pdb
+  namespace: manufacturing-mas
+  labels:
+    app: manufacturing-mas
+    agent: agent-02
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: manufacturing-mas
+      agent: agent-02

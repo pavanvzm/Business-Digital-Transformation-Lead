@@ -1,0 +1,53 @@
+# Agent-03 Inventory & Warehousing Configuration
+agent:
+  id: "agent-03"
+  name: "Inventory & Warehousing Agent"
+  version: "1.0.0"
+  autonomy_level: "L3"
+  kpi_owner: "Supply Chain Director"
+
+warehouse:
+  zones:
+    - "receiving"
+    - "reserve_storage"
+    - "forward_pick"
+    - "cross_dock"
+    - "quality_hold"
+  slotting_strategy: "velocity_based"
+  putaway_method: "random_within_zone"
+
+inventory:
+  valuation_method: "weighted_average"
+  cycle_count_frequency_days: 90
+  abc_analysis:
+    a_threshold_pct: 80.0
+    b_threshold_pct: 95.0
+    c_remainder: true
+  expiration_monitoring: true
+  lot_tracking: true
+
+escalation:
+  paths:
+    - trigger: "stock_out_probability > 0.15"
+      notify: ["cpo", "supply_chain_director"]
+      sla_minutes: 60
+      priority: "P1-High"
+    - trigger: "dead_stock_value > 5%"
+      notify: ["finance_director", "inventory_manager"]
+      sla_minutes: 240
+      priority: "P2-Medium"
+    - trigger: "space_utilization > 92%"
+      notify: ["warehouse_manager", "operations_director"]
+      sla_minutes: 240
+      priority: "P2-Medium"
+
+fallback:
+  wms_unavailable:
+    strategy: "use_cached_snapshot"
+    max_age_minutes: 30
+  forecast_unavailable:
+    strategy: "safety_stock_buffer"
+    multiplier: 1.5
+  cross_docking:
+    disabled: true
+    fallback_routing: "store_all"

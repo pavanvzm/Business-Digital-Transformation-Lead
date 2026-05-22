@@ -1,0 +1,22 @@
+# =============================================================================
+# Manufacturing MAS — Agent-01 PodDisruptionBudget
+#
+# Ensures at least 1 replica is available during voluntary disruptions
+# (e.g. node maintenance, cluster upgrades).
+# =============================================================================
+
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: agent-01-pdb
+  namespace: manufacturing-mas
+  labels:
+    app.kubernetes.io/name: agent-01
+    app.kubernetes.io/component: procurement
+    app.kubernetes.io/part-of: manufacturing-mas
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-01
+      app.kubernetes.io/component: procurement

@@ -1,0 +1,54 @@
+# =============================================================================
+# Manufacturing MAS — Agent-01 Horizontal Pod Autoscaler
+#
+# Scales based on:
+#   - CPU utilization (primary)
+#   - Memory utilization (secondary)
+#
+# For production, consider custom metrics based on:
+#   - Kafka consumer lag (KEDA)
+#   - Pending HITL tickets
+# =============================================================================
+
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: agent-01-hpa
+  namespace: manufacturing-mas
+  labels:
+    app.kubernetes.io/name: agent-01
+    app.kubernetes.io/component: procurement
+    app.kubernetes.io/part-of: manufacturing-mas
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: agent-01-procurement
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120

@@ -1,0 +1,60 @@
+# Agent-04 Sales & Distribution Configuration
+agent:
+  id: "agent-04"
+  name: "Sales & Distribution Agent"
+  version: "1.0.0"
+  autonomy_level: "L2"
+  kpi_owner: "Chief Sales Officer (CSO)"
+
+pricing:
+  strategy: "dynamic_cost_plus"
+  base_margin_pct: 15.0
+  minimum_margin_pct: 5.0
+  change_hitl_threshold_pct: 5.0
+  competitor_tracking: true
+
+fulfillment:
+  routing_method: "nearest_warehouse"
+  partial_shipment_allowed: true
+  backorder_strategy: "notify_customer"
+  carrier_selection: "cost_optimized"
+
+customer_tiers:
+  - tier: 1  # Premium
+    max_credit_term_days: 60
+    discount_pct: 5.0
+    priority_routing: true
+  - tier: 2  # Standard
+    max_credit_term_days: 30
+    discount_pct: 2.0
+    priority_routing: false
+  - tier: 3  # Basic
+    max_credit_term_days: 15
+    discount_pct: 0.0
+    priority_routing: false
+
+escalation:
+  paths:
+    - trigger: "pricing_change > 5%"
+      notify: ["cso", "pricing_manager"]
+      sla_minutes: 60
+      priority: "P1-High"
+    - trigger: "customer_allocation_change > 10%"
+      notify: ["sales_director", "cso"]
+      sla_minutes: 60
+      priority: "P1-High"
+    - trigger: "bulk_order_value > $100K"
+      notify: ["sales_manager", "finance"]
+      sla_minutes: 240
+      priority: "P2-Medium"
+
+fallback:
+  crm_unavailable:
+    strategy: "manual_order_processing"
+    max_queue_size: 100
+  inventory_unavailable:
+    strategy: "reserve_stock_check"
+    timeout_seconds: 5
+  pricing_engine:
+    strategy: "last_known_price"
+    buffer_pct: 3.0

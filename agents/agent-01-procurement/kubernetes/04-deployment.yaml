@@ -1,0 +1,163 @@
+# =============================================================================
+# Manufacturing MAS — Agent-01 Deployment
+#
+# Deployment configuration for the procurement agent with:
+#   - Resource limits and requests
+#   - Liveness, readiness, and startup probes
+#   - Pod anti-affinity for HA
+#   - Priority class for production criticality
+#   - Graceful shutdown period
+# =============================================================================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-01-procurement
+  namespace: manufacturing-mas
+  labels:
+    app.kubernetes.io/name: agent-01
+    app.kubernetes.io/component: procurement
+    app.kubernetes.io/part-of: manufacturing-mas
+    app.kubernetes.io/version: "1.0.0"
+  annotations:
+    description: "Procurement Agent - vendor scoring, PO optimization, HITL"
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+spec:
+  replicas: 2  # HA: minimum 2 replicas for production
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0  # Zero-downtime deployment
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: agent-01
+      app.kubernetes.io/component: procurement
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: agent-01
+        app.kubernetes.io/component: procurement
+        app.kubernetes.io/part-of: manufacturing-mas
+    spec:
+      # Priority class for production-critical agents
+      priorityClassName: production-critical
+      
+      # Graceful shutdown: allow up to 30s for offset commit + cleanup
+      terminationGracePeriodSeconds: 30
+      
+      # Pod anti-affinity: spread across nodes for HA
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app.kubernetes.io/name
+                      operator: In
+                      values:
+                        - agent-01
+                topologyKey: kubernetes.io/hostname
+      
+      containers:
+        - name: agent-01
+          image: manufacturing-mas/agent-01-procurement:1.0.0
+          imagePullPolicy: IfNotPresent
+          
+          # Pre-stop hook for graceful Kafka consumer shutdown
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 10 && kill -TERM 1"]
+          
+          ports:
+            - containerPort: 8000
+              name: health
+              protocol: TCP
+          
+          envFrom:
+            - configMapRef:
+                name: agent-01-config
+            - secretRef:
+                name: agent-01-secrets
+          
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "2"
+              memory: "2Gi"
+          
+          # Startup probe: give time for Kafka consumer group rebalance
+          startupProbe:
+            httpGet:
+              path: /health/startup
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 12  # 2 minutes to start
+          
+          # Readiness probe: agent ready to process messages
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: health
+            periodSeconds: 15
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          
+          # Liveness probe: agent still alive
+          livenessProbe:
+            httpGet:
+              path: /health/live
+              port: health
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          
+          volumeMounts:
+            - name: agent-config
+              mountPath: /app/config/agent_config.yaml
+              subPath: agent_config.yaml
+            - name: fallback-queue
+              mountPath: /var/agent-01/queue
+            - name: tmp
+              mountPath: /tmp
+          
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1001
+            runAsGroup: 1001
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+      
+      volumes:
+        - name: agent-config
+          configMap:
+            name: agent-01-config
+            # Note: ConfigMap keys are env vars (AGENT_ID, etc.).
+            # For agent_config.yaml, mount via the YAML config path or
+            # use the ConfigMap's `data` field directly.
+            # Comment out if not using a file-based config:
+            # items:
+            #   - key: agent_config.yaml
+            #     path: agent_config.yaml
+        - name: fallback-queue
+          emptyDir:
+            sizeLimit: "500Mi"
+        - name: tmp
+          emptyDir: {}
+      
+      # Service account for pod-level security
+      serviceAccountName: agent-01-sa
+      
+      # Node selector for production workload nodes
+      nodeSelector:
+        node-type: production

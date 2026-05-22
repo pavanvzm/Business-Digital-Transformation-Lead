@@ -1,0 +1,125 @@
+/* ═══════════════════════════════════════════════════
+   MAS HITL Dashboard — Design System
+   Dark operations theme with priority color coding
+   ═══════════════════════════════════════════════════ */
+
+:root {
+  /* ── Background palette ── */
+  --bg-primary: #0b0e14;
+  --bg-secondary: #131820;
+  --bg-tertiary: #1a212c;
+  --bg-card: #1e2632;
+  --bg-card-hover: #262f3d;
+  --bg-input: #141b24;
+
+  /* ── Border palette ── */
+  --border-subtle: #252e3d;
+  --border-default: #324055;
+  --border-focus: #4d6a8f;
+
+  /* ── Text palette ── */
+  --text-primary: #e8edf5;
+  --text-secondary: #9aabbf;
+  --text-tertiary: #6a7e99;
+  --text-muted: #4a5a73;
+
+  /* ── Priority colors ── */
+  --color-p0: #ff2b4a;
+  --color-p0-bg: rgba(255, 43, 74, 0.12);
+  --color-p0-glow: rgba(255, 43, 74, 0.3);
+  --color-p1: #ff8c1a;
+  --color-p1-bg: rgba(255, 140, 26, 0.10);
+  --color-p2: #2196f3;
+  --color-p2-bg: rgba(33, 150, 243, 0.08);
+  --color-p3: #4caf50;
+  --color-p3-bg: rgba(76, 175, 80, 0.08);
+
+  /* ── Status colors ── */
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-danger: #ef4444;
+  --color-info: #3b82f6;
+  --color-neutral: #6b7280;
+
+  /* ── Dimensions ── */
+  --header-height: 56px;
+  --sidebar-width: 420px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* ── Reset & Base ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Inter', Roboto, sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow: hidden;
+  height: 100vh;
+}
+
+#root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-default);
+}
+
+/* ── Animations ── */
+@keyframes pulse-sla {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes timerWarning {
+  0%, 100% { color: var(--color-p1); }
+  50% { color: var(--color-danger); }
+}
+
+/* ── Utility classes ── */
+.pulse-sla {
+  animation: pulse-sla 2s ease-in-out infinite;
+}
+
+.slide-in {
+  animation: slideIn 0.25s ease-out;
+}

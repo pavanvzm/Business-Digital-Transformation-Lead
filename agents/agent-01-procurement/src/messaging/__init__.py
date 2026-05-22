@@ -1,0 +1,1 @@
+"""Messaging layer: Kafka consumer, producer, and CloudEvents schemas."""

@@ -1,0 +1,106 @@
+# Agent-01: Procurement Agent Configuration
+# Overrides for environment-specific settings
+
+agent:
+  id: "agent-01"
+  name: "Procurement Agent"
+  autonomy_level: "L2"  # Semi-Autonomous
+  kpi_owner: "CPO"
+  description: >
+    Optimizes raw material sourcing, manages vendor relationships,
+    monitors price volatility, and recommends purchase orders.
+
+scoring:
+  # Custom weight overrides for specific material categories
+  material_categories:
+    critical_raw_materials:
+      weight_quality: 0.30
+      weight_delivery: 0.25
+      weight_price: 0.15
+      weight_esg: 0.15
+      min_acceptable_score: 75.0
+    commodity_materials:
+      weight_price: 0.40
+      weight_delivery: 0.20
+      weight_quality: 0.15
+      min_acceptable_score: 50.0
+    packaging:
+      weight_price: 0.30
+      weight_esg: 0.25
+      weight_quality: 0.15
+
+  vendor_score_metrics:
+    - name: "Price Competitiveness"
+      weight: 0.25
+      data_source: "market_prices"
+      description: "Comparison of quoted price vs. market average"
+    - name: "Quality Rating"
+      weight: 0.20
+      data_source: "erp_quality"
+      description: "Historical defect rate and PPM"
+    - name: "On-Time Delivery"
+      weight: 0.15
+      data_source: "erp_po_data"
+      description: "Percentage of orders delivered on time"
+    - name: "ESG Score"
+      weight: 0.10
+      data_source: "esg_api"
+      description: "Environmental, Social, Governance rating"
+    - name: "Financial Health"
+      weight: 0.10
+      data_source: "dun_bradstreet"
+      description: "D&B financial stability rating"
+    - name: "Innovation Index"
+      weight: 0.05
+      data_source: "patent_analysis"
+      description: "R&D investment and patent activity"
+    - name: "Compliance Rating"
+      weight: 0.05
+      data_source: "compliance_db"
+      description: "Regulatory compliance history"
+    - name: "Relationship Tenure"
+      weight: 0.05
+      data_source: "erp_vendor_master"
+      description: "Years as active supplier"
+    - name: "Geographic Diversity"
+      weight: 0.05
+      data_source: "erp_vendor_master"
+      description: "Multi-region supply capability"
+
+thresholds:
+  price_spike_warning_pct: 5.0
+  price_spike_critical_pct: 10.0
+  po_value_hitl_threshold_usd: 500000
+  sole_source_hitl: true
+  vendor_score_hitl_threshold: 60.0
+  max_retry_attempts: 3
+  fallback_price_age_hours: 24
+  conservative_buffer_pct: 3.0
+
+escalation:
+  paths:
+    - trigger: "price_spike > 5%"
+      notify: ["CFO", "CPO"]
+      sla_minutes: 60
+      priority: "P1-High"
+    - trigger: "vendor_score < 60"
+      notify: ["sourcing_team"]
+      sla_minutes: 240
+      priority: "P2-Medium"
+    - trigger: "po_value > $500K"
+      notify: ["procurement_director"]
+      sla_minutes: 120
+      priority: "P1-High"
+
+fallback:
+  market_prices_unavailable:
+    strategy: "use_cached"
+    max_age_hours: 24
+    conservative_buffer_pct: 3.0
+  forecast_unavailable:
+    strategy: "trailing_average"
+    window_months: 3
+  kafka_unavailable:
+    strategy: "local_queue"
+    queue_path: "/var/agent-01/queue"
+    max_queue_size_mb: 500

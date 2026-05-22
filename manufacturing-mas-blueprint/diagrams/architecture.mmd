@@ -1,0 +1,231 @@
+%% Manufacturing MAS Architecture Diagram
+%% Render at: https://mermaid.live/ or integrate into markdown viewer
+
+%% ── Agent Topology ──
+graph TB
+    subgraph Presentation["Presentation Layer"]
+        D1["C-Level Dashboards"]
+        D2["Operations UI"]
+        D3["Finance Console"]
+        D4["Supply Chain Hub"]
+    end
+
+    subgraph Orchestration["Orchestrator & Governance Layer"]
+        O09["Agent-09: Orchestrator & Governance"]
+        O09_1["- Cross-agent arbitration"]
+        O09_2["- HITL escalation"]
+        O09_3["- KPI dashboards"]
+        O09_4["- Model version control"]
+        O09_5["- Rollback coordination"]
+    end
+
+    subgraph Intelligence["Intelligence & Optimization Layer"]
+        A05["Agent-05: Market Intelligence"]
+        A06["Agent-06: Predictive Analytics & Demand Planning"]
+        A08["Agent-08: Compliance & Risk"]
+        A07["Agent-07: Financial & Cost Accounting"]
+    end
+
+    subgraph Execution["Execution & Operations Layer"]
+        A01["Agent-01: Procurement"]
+        A02["Agent-02: Production & MES"]
+        A03["Agent-03: Inventory & Warehousing"]
+        A04["Agent-04: Sales & Distribution"]
+    end
+
+    subgraph DataLayer["Data & Integration Layer"]
+        Kafka["Kafka / Pulsar<br>Event Streaming"]
+        Delta["Delta Lake / Iceberg<br>Data Lakehouse"]
+        PG["PostgreSQL<br>Relational Data"]
+        Redis["Redis<br>Cache & Feature Store"]
+        MinIO["MinIO<br>Object Store / WORM Audit"]
+        DQ["Data Quality Gates<br>Great Expectations / Deequ"]
+    end
+
+    subgraph Sources["External Systems & Data Sources"]
+        ERP("ERP<br>SAP / Oracle")
+        MES("MES<br>Siemens / Rockwell")
+        SCM("SCM")
+        CRM("CRM<br>Salesforce")
+        IoT("IoT / Sensors")
+        POS("POS / Retailer<br>EDI Feeds")
+        Banking("Banking /<br>Payment APIs")
+        Market("Market Data<br>Bloomberg / LME")
+        Social("Social / Web<br>Scraping")
+    end
+
+    %% Presentation connections
+    D1 --> O09
+    D2 --> O09
+    D3 --> O07
+    D4 --> O01
+
+    %% Orchestrator to Intelligence
+    O09 --> A05
+    O09 --> A06
+    O09 --> A08
+    O09 --> A07
+
+    %% Orchestrator to Execution
+    O09 --> A01
+    O09 --> A02
+    O09 --> A03
+    O09 --> A04
+
+    %% Intelligence to Data
+    A05 --> Kafka
+    A06 --> Delta
+    A07 --> PG
+    A08 --> MinIO
+
+    %% Execution to Data
+    A01 --> Kafka
+    A02 --> Delta
+    A03 --> Redis
+    A04 --> PG
+
+    %% Data to Sources
+    Kafka --> ERP
+    Delta --> MES
+    PG --> SCM
+    Redis --> CRM
+    DQ --> IoT
+    DQ --> POS
+    DQ --> Banking
+    DQ --> Market
+    DQ --> Social
+
+    %% Cross-agent Intelligence communication
+    A05 -.-> A06
+    A06 -.-> A07
+
+    %% Cross-agent Execution communication
+    A01 -.-> A02
+    A02 -.-> A03
+    A03 -.-> A04
+    A04 -.-> A01
+
+    %% Data quality layer
+    Delta --> DQ
+    Kafka --> DQ
+    DQ --> PG
+
+    %% Styling
+    classDef presentation fill:#e1f5fe,stroke:#0288d1
+    classDef orchestration fill:#fff3e0,stroke:#f57c00
+    classDef intelligence fill:#f3e5f5,stroke:#7b1fa2
+    classDef execution fill:#e8f5e9,stroke:#388e3c
+    classDef data fill:#f5f5f5,stroke:#616161
+    classDef sources fill:#ffebee,stroke:#d32f2f
+
+    class D1,D2,D3,D4 presentation
+    class O09,O09_1,O09_2,O09_3,O09_4,O09_5 orchestration
+    class A05,A06,A07,A08 intelligence
+    class A01,A02,A03,A04 execution
+    class Kafka,Delta,PG,Redis,MinIO,DQ data
+    class ERP,MES,SCM,CRM,IoT,POS,Banking,Market,Social sources
+
+%% ── Agent Communication Flow ──
+    subgraph CommunicationFlow["Agent Communication (via Kafka Pub/Sub)"]
+        direction LR
+        C01[("events.procurement")]
+        C02[("events.production")]
+        C03[("events.inventory")]
+        C04[("events.sales")]
+        C05[("events.market")]
+        C06[("events.forecast")]
+        C07[("events.finance")]
+        C08[("events.compliance")]
+        C09[("events.orchestrator")]
+        DLQ[("events.dead-letter")]
+    end
+
+    A01 --> C01
+    A02 --> C02
+    A03 --> C03
+    A04 --> C04
+    A05 --> C05
+    A06 --> C06
+    A07 --> C07
+    A08 --> C08
+    O09 --> C09
+
+    C01 --> A02
+    C01 --> A03
+    C01 --> A06
+    C01 --> A07
+    C01 --> A08
+
+    C02 --> A03
+    C02 --> A04
+    C02 --> A06
+    C02 --> A07
+    C02 --> A08
+
+    C03 --> A01
+    C03 --> A02
+    C03 --> A04
+    C03 --> A06
+    C03 --> A08
+
+    C04 --> A03
+    C04 --> A06
+    C04 --> A07
+    C04 --> A08
+
+    C05 --> A01
+    C05 --> A06
+    C05 --> A08
+
+    C06 --> A01
+    C06 --> A02
+    C06 --> A03
+    C06 --> A04
+    C06 --> A07
+    C06 --> A08
+
+    C07 --> A08
+    C07 --> O09
+
+    C08 --> A09
+    C08 --> C09
+
+    C09 -.->|Governance| A01
+    C09 -.->|Governance| A02
+    C09 -.->|Governance| A03
+    C09 -.->|Governance| A04
+    C09 -.->|Governance| A05
+    C09 -.->|Governance| A06
+    C09 -.->|Governance| A07
+    C09 -.->|Governance| A08
+
+    A01 -.->|Error| DLQ
+    A02 -.->|Error| DLQ
+    A03 -.->|Error| DLQ
+    A04 -.->|Error| DLQ
+    A05 -.->|Error| DLQ
+    A06 -.->|Error| DLQ
+    A07 -.->|Error| DLQ
+    A08 -.->|Error| DLQ
+    DLQ -.-> O09
+
+%% ── Data Flow: Medallion Architecture ──
+    subgraph DataFlow["Data Flow: Medallion Architecture"]
+        direction LR
+        BRONZE("Bronze Layer<br>Raw Ingestion<br>Append-only, 7d retention")
+        SILVER("Silver Layer<br>Cleansed & Enriched<br>dbt transforms, 90d")
+        GOLD("Gold Layer<br>Business Metrics<br>Materialized views, 1yr+")
+    end
+
+    Sources --> BRONZE
+    BRONZE --> SILVER
+    SILVER --> GOLD
+    GOLD --> A01
+    GOLD --> A02
+    GOLD --> A03
+    GOLD --> A04
+    GOLD --> A05
+    GOLD --> A06
+    GOLD --> A07
+    GOLD --> A08
+    GOLD --> O09

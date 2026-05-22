@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: manufacturing-mas
+  labels:
+    name: manufacturing-mas
+    agent: agent-02
+    environment: production
